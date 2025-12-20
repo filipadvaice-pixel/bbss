@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Калькулятор услуг</title>
+  <style>
+    :root{
+      --bg1: #0b0021; --bg2: #7125e4; --bg3: #2b0a86;
+      --card: rgba(255,255,255,0.10);
+      --line: rgba(255,255,255,0.22);
+      --ink:#ffffff; --muted: rgba(255,255,255,0.85);
+      --brand: #7125e4; --brand2: #b36bff;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0; font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial; color:var(--ink);
+      background:
+        radial-gradient(1200px 600px at -10% -10%, rgba(255,255,255,.16), transparent 60%),
+        radial-gradient(1200px 600px at 110% 10%, rgba(255,255,255,.10), transparent 60%),
+        linear-gradient(160deg, var(--bg1) 0%, var(--bg2) 55%, var(--bg3) 100%);
+      min-height:100svh;
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:48px 24px 56px}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:.2px}
+    .badge{
+      width:44px;height:44px;border-radius:14px;
+      background:rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.22);
+      backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+      overflow:hidden;
+      display:grid;place-items:center;
+      box-shadow:0 10px 30px rgba(0,0,0,.18);
+    }
+    .badge img{width:100%;height:100%;object-fit:cover;display:block}
+    h1{margin:16px 0 10px;font-size:clamp(28px,5vw,46px);line-height:1.15}
+    .sub{color:var(--muted);max-width:760px;margin:0 0 22px}
+    .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:22px;align-items:start}
+    @media (max-width:980px){.grid{grid-template-columns:1fr}}
+    .card{background:rgba(255,255,255,.10);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+      border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 16px 60px rgba(8,26,54,.30)}
+    .chips{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 14px}
+    .chip{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);padding:10px 12px;border-radius:12px;font-size:14px;color:#eaf4ff}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .btn{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#14002a;border:0;padding:12px 16px;border-radius:12px;font-weight:800;cursor:pointer}
+    .btn.secondary{background:rgba(255,255,255,.12);color:#eaf4ff;border:1px solid rgba(255,255,255,.25)}
+    .btn[disabled]{opacity:.6;cursor:not-allowed}
+    .pill{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:6px 10px;font-size:13px;color:#eaf4ff}
+    .meter{height:10px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;overflow:hidden}
+    .meter>div{height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2));width:0%}
+    .status{min-height:22px;color:#e3f2fd;font-size:14px;margin-top:6px}
+    .result{display:none}
+    .price{font-size:28px;font-weight:900;margin-bottom:6px}
+    footer{margin-top:40px;color:#e3f2fd;font-size:12px;text-align:center;opacity:.85}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="badge">
+          <img alt="Beauty Lazer" src="download (13).png">
+        </div>
+        <span>Beauty Lazer</span>
+      </div>
+    </header>
+
+    <h1>Калькулятор услуг</h1>
+    <p class="sub">Давайте посчитаем сколько будут стоять услуги для вас (вы можете воспользоваться микрофоном)</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="chips">
+          <span class="chip">Лазер бикини</span>
+          <span class="chip">Лазер подмышки</span>
+          <span class="chip">Электро бикини</span>
+          <span class="chip">Электро подмышки</span>
+          <span class="chip">Массаж RSL</span>
+          <span class="chip">Чистка лица + миндальный пилинг</span>
+        </div>
+        <div class="row">
+          <button class="btn" id="rec">🎙️ Записать</button>
+          <button class="btn secondary" id="stop" disabled>⏹️ Стоп</button>
+          <button class="btn" id="send" disabled>Получить оценку</button>
+          <span id="timer" class="pill">00:00</span>
+        </div>
+        <div class="meter" style="margin:12px 0"><div id="meterFill"></div></div>
+        <div id="status" class="status">Готово к записи</div>
+      </div>
+
+      <div class="card result" id="result">
+        <div style="opacity:.9;margin-bottom:6px">Предварительная оценка</div>
+        <div id="price" class="price">—</div>
+        <div id="summary" style="opacity:.9">—</div>
+        <a id="tg" class="btn" href="#" style="display:none;margin-top:12px" target="_blank">Перейти в Telegram</a>
+      </div>
+    </div>
+
+    <footer>© Beauty Lazer.</footer>
+  </div>
+
+<script>
+(() => {
+  const CONFIG = {
+    company: "Beauty Lazer",
+    niche: "Лазерная Эпиляция",
+    city: "Щелково Московская Область",
+    webhook: "/.netlify/functions/estimate",
+    telegramBotUrl: "https://telegram.org/",
+    statusUrl: "",
+    title: "Калькулятор услуг",
+    subtitle: "Давайте посчитаем сколько будут стоять услуги для вас (вы можете воспользоваться микрофоном)",
+    resultTitle: "Предварительная оценка",
+    footer: "Beauty Lazer.",
+    hints: ["Лазер бикини","Лазер подмышки","Электро бикини","Электро подмышки","Массаж RSL","Чистка лица + миндальный пилинг"],
+    theme: { bg1: "#0b0021", bg2: "#7125e4", bg3: "#2b0a86", brand: "#7125e4", brand2: "#b36bff" }
+  };
+
+  const i18n = {
+    rec: "Записать",
+    stop: "Стоп",
+    send: "Получить оценку",
+    ready: "Готово к записи",
+    sending: "Отправляем…",
+    done: "Готово",
+    calc: "Считаем…",
+    queued: "Заявка принята.",
+    enqueued: "Заявка принята",
+    summaryWait: "Как только расчёт будет готов — он появится здесь.",
+    summaryReady: "Предварительная оценка готова.",
+    errCalc: "Ошибка расчёта",
+    timeout: "Время ожидания истекло",
+    tg: "Перейти в Telegram",
+    micNeed: "Нужен доступ к микрофону",
+    errPrefix: "Ошибка: ",
+    errStatusPrefix: "Ошибка статуса: "
+  };
+
+  document.title = CONFIG.title;
+
+  const $=s=>document.querySelector(s);
+  const rec=$("#rec"), stop=$("#stop"), send=$("#send");
+  const status=$("#status"), meter=$("#meterFill"), timer=$("#timer");
+  const resultBox=$("#result"), price=$("#price"), summary=$("#summary"), tg=$("#tg");
+
+  let mr, chunks=[], blob, analyser, dataArray, raf, stream, audioCtx, startedAt=0;
+
+  const pick=()=> (MediaRecorder.isTypeSupported?.("audio/webm;codecs=opus")?"audio/webm;codecs=opus":
+                   MediaRecorder.isTypeSupported?.("audio/webm")?"audio/webm":"");
+
+  const fmt=t=>{
+    const s=Math.floor(t/1000), m=Math.floor(s/60), r=s%60;
+    return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`;
+  };
+
+  function vu(){
+    if(!analyser) return;
+    analyser.getByteFrequencyData(dataArray);
+    const avg = dataArray.reduce((a,b)=>a+b,0)/dataArray.length;
+    const pct = Math.min(100, Math.max(2, (avg/255)*100));
+    meter.style.width = pct.toFixed(0)+'%';
+    timer.textContent = fmt(performance.now()-startedAt);
+    raf = requestAnimationFrame(vu);
+  }
+
+  rec.onclick=async()=>{
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      const src = audioCtx.createMediaStreamSource(stream);
+      analyser = audioCtx.createAnalyser(); analyser.fftSize = 256;
+      dataArray = new Uint8Array(analyser.frequencyBinCount);
+      src.connect(analyser);
+
+      chunks=[]; blob=null;
+      status.textContent = i18n.rec + "…";
+
+      const mime = pick();
+      mr=new MediaRecorder(stream, mime ? {mimeType:mime}:{});
+      mr.ondataavailable=e=>e.data.size && chunks.push(e.data);
+      mr.onstop=()=>{
+        blob=new Blob(chunks,{type: mime || "audio/webm"});
+        stream.getTracks().forEach(t=>t.stop());
+        audioCtx && audioCtx.close();
+        cancelAnimationFrame(raf);
+
+        status.textContent = i18n.ready;
+        send.disabled = !blob;
+        stop.disabled = true;
+        rec.disabled = false;
+        meter.style.width='0%';
+        timer.textContent='00:00';
+      };
+
+      mr.start();
+      startedAt=performance.now();
+      rec.disabled=true;
+      stop.disabled=false;
+      send.disabled=true;
+      vu();
+    }catch(e){
+      status.textContent = i18n.micNeed;
+    }
+  };
+
+  stop.onclick=()=> mr?.state==="recording" && mr.stop();
+
+  send.onclick=async()=>{
+    try{
+      if(!blob){ status.textContent = i18n.ready; return; }
+      status.textContent = i18n.sending;
+      send.disabled=true;
+
+      const fd=new FormData();
+      fd.append("audio", blob, `voice_${Date.now()}.webm`);
+      fd.append("niche", CONFIG.niche || "generic");
+      fd.append("company", CONFIG.company || "");
+      fd.append("city", CONFIG.city || "");
+
+      const r=await fetch(CONFIG.webhook,{method:"POST",body:fd});
+      let data = {};
+      try{ data = await r.json(); }catch(e){}
+
+      if(!r.ok) throw new Error(data?.message || ("HTTP "+r.status));
+
+      if(data.estimateLow || data.estimateHigh){
+        showEstimate(data);
+        status.textContent = i18n.done;
+      } else if(data.jobId && CONFIG.statusUrl){
+        status.textContent = i18n.calc;
+        pollStatus(data.jobId);
+      } else {
+        status.textContent = i18n.queued;
+        showOk();
+      }
+    }catch(e){
+      status.textContent = i18n.errPrefix + e.message;
+      send.disabled=false;
+    }
+  };
+
+  function showOk(){
+    resultBox.style.display='block';
+    price.textContent = i18n.enqueued;
+    summary.textContent = i18n.summaryWait;
+    tg.style.display='none';
+  }
+
+  function formatNum(n){
+    const s = String(n);
+    return s.replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+  }
+
+  function showEstimate(d){
+    const cur = d.currency || "₽";
+    const low = (d.estimateLow !== undefined && d.estimateLow !== null && d.estimateLow !== "") ? formatNum(d.estimateLow) : null;
+    const high = (d.estimateHigh !== undefined && d.estimateHigh !== null && d.estimateHigh !== "") ? formatNum(d.estimateHigh) : null;
+
+    price.textContent = (low && high) ? `${low}–${high} ${cur}` :
+                      (low ? `${low} ${cur}` :
+                      (high ? `${high} ${cur}` : "—"));
+
+    summary.textContent = d.summary || i18n.summaryReady;
+
+    const url = d.botUrl || CONFIG.telegramBotUrl;
+    if(url){
+      tg.href = url;
+      tg.textContent = i18n.tg;
+      tg.style.display='inline-block';
+    } else {
+      tg.style.display='none';
+    }
+    resultBox.style.display='block';
+  }
+
+  async function pollStatus(jobId){
+    try{
+      for(let i=0;i<40;i++){
+        const pr = await fetch(CONFIG.statusUrl + encodeURIComponent(jobId));
+        const data = await pr.json();
+        if(data.status === 'ready'){ showEstimate(data); status.textContent=i18n.done; return; }
+        if(data.status === 'error'){ status.textContent=i18n.errCalc; return; }
+        await new Promise(r=>setTimeout(r,1500));
+      }
+      status.textContent=i18n.timeout;
+    }catch(e){
+      status.textContent = i18n.errStatusPrefix + e.message;
+    }
+  }
+})();
+</script>
+</body>
+</html>
