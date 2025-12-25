@@ -22,7 +22,7 @@ export default async (request, context) => {
   try {
     // Твой n8n webhook (Timeweb)
     const N8N_WEBHOOK_URL =
-      "https://n8n-workeeer.tw1.su/webhook/09d8435e-4088-461b-b6c8-6691c8d7b4f2";
+      "https://n8n-amstardam.tw1.su/webhook/6934ae76-c5de-4a01-a43c-1287ba63ec5a";
 
     // Берём multipart/form-data от браузера
     const incoming = await request.formData();
