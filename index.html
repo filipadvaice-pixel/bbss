@@ -281,7 +281,11 @@
     price.textContent = formatPrice(d);
 
     // summary should be strict "Услуга/Зона" (comes from updated n8n Code node)
-    summary.textContent = d.summary || i18n.summaryReady;
+    const s = (d.summary || i18n.summaryReady)
+  .replace(/\s+Зона:/g, "\nЗона:")
+  .replace(/\s+Нужно уточнить:/g, "\nНужно уточнить:")
+  .replace(/\s+Уточнение:/g, "\nУточнение:");
+summary.textContent = s;
 
     // NEW: show disclaimer only if range
     const disc = d.disclaimer || "";
