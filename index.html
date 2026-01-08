@@ -22,16 +22,16 @@
       min-height:100svh;
     }
     .wrap{max-width:1100px;margin:0 auto;padding:28px 24px 56px}
-   header{display:flex;justify-content:flex-start;align-items:center;margin-bottom:8px}
+    header{display:flex;justify-content:flex-start;align-items:center;margin-bottom:8px}
     .brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:.2px}
 
-.logo{
-  height: 64px;        
-  width: auto;
-  max-width: 260px;    
-  display: block;
-  object-fit: contain;
-}
+    .logo{
+      height: 64px;
+      width: auto;
+      max-width: 260px;
+      display: block;
+      object-fit: contain;
+    }
     h1{margin:16px 0 10px;font-size:clamp(28px,5vw,46px);line-height:1.15}
     .sub{color:var(--muted);max-width:760px;margin:0 0 22px}
     .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:22px;align-items:start}
@@ -51,15 +51,18 @@
     .result{display:none}
     .price{font-size:28px;font-weight:900;margin-bottom:6px}
     footer{margin-top:40px;color:#e3f2fd;font-size:12px;text-align:center;opacity:.85}
+
+    /* NEW: disclaimer under price when range */
+    .disclaimer{margin-top:8px; font-size:12px; opacity:.85; color:#eaf4ff}
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-  <div class="brand">
-    <img class="logo" alt="Beauty Lazer" src="download (13).png">
-  </div>
-</header>
+      <div class="brand">
+        <img class="logo" alt="Beauty Lazer" src="download (13).png">
+      </div>
+    </header>
 
     <h1>Калькулятор услуг</h1>
     <p class="sub">Давайте посчитаем сколько будут стоять услуги для вас (вы можете воспользоваться микрофоном)</p>
@@ -87,7 +90,10 @@
       <div class="card result" id="result">
         <div style="opacity:.9;margin-bottom:6px">Предварительная оценка</div>
         <div id="price" class="price">—</div>
-        <div id="summary" style="opacity:.9">—</div>
+        <!-- NEW: disclaimer shows only when range -->
+        <div id="disclaimer" class="disclaimer" style="display:none">—</div>
+
+        <div id="summary" style="opacity:.9;margin-top:10px;white-space:pre-line">—</div>
         <a id="tg" class="btn" href="#" style="display:none;margin-top:12px" target="_blank">Перейти в Telegram</a>
       </div>
     </div>
@@ -138,6 +144,7 @@
   const rec=$("#rec"), stop=$("#stop"), send=$("#send");
   const status=$("#status"), meter=$("#meterFill"), timer=$("#timer");
   const resultBox=$("#result"), price=$("#price"), summary=$("#summary"), tg=$("#tg");
+  const disclaimerEl = $("#disclaimer");
 
   let mr, chunks=[], blob, analyser, dataArray, raf, stream, audioCtx, startedAt=0;
 
@@ -239,6 +246,7 @@
     resultBox.style.display='block';
     price.textContent = i18n.enqueued;
     summary.textContent = i18n.summaryWait;
+    disclaimerEl.style.display = 'none';
     tg.style.display='none';
   }
 
@@ -247,16 +255,44 @@
     return s.replace(/\B(?=(\d{3})+(?!\d))/g,' ');
   }
 
-  function showEstimate(d){
+  // NEW: formats price without "1000–1000"
+  function formatPrice(d){
     const cur = d.currency || "₽";
-    const low = (d.estimateLow !== undefined && d.estimateLow !== null && d.estimateLow !== "") ? formatNum(d.estimateLow) : null;
-    const high = (d.estimateHigh !== undefined && d.estimateHigh !== null && d.estimateHigh !== "") ? formatNum(d.estimateHigh) : null;
+    const lowVal = (d.estimateLow !== undefined && d.estimateLow !== null && d.estimateLow !== "") ? Number(d.estimateLow) : null;
+    const highVal = (d.estimateHigh !== undefined && d.estimateHigh !== null && d.estimateHigh !== "") ? Number(d.estimateHigh) : null;
 
-    price.textContent = (low && high) ? `${low}–${high} ${cur}` :
-                      (low ? `${low} ${cur}` :
-                      (high ? `${high} ${cur}` : "—"));
+    const low = (lowVal !== null && Number.isFinite(lowVal)) ? formatNum(lowVal) : null;
+    const high = (highVal !== null && Number.isFinite(highVal)) ? formatNum(highVal) : null;
 
+    // if both exist and equal -> show single
+    if (low && high && lowVal === highVal) return `${low} ${cur}`;
+
+    // range
+    if (low && high) return `${low}–${high} ${cur}`;
+
+    // one-sided
+    if (low) return `${low} ${cur}`;
+    if (high) return `${high} ${cur}`;
+
+    return "—";
+  }
+
+  function showEstimate(d){
+    price.textContent = formatPrice(d);
+
+    // summary should be strict "Услуга/Зона" (comes from updated n8n Code node)
     summary.textContent = d.summary || i18n.summaryReady;
+
+    // NEW: show disclaimer only if range
+    const disc = d.disclaimer || "";
+    const isRange = (d.isRange === true) || (Number(d.estimateLow) !== Number(d.estimateHigh));
+    if (isRange && disc) {
+      disclaimerEl.textContent = disc;
+      disclaimerEl.style.display = 'block';
+    } else {
+      disclaimerEl.style.display = 'none';
+      disclaimerEl.textContent = "";
+    }
 
     const url = d.botUrl || CONFIG.telegramBotUrl;
     if(url){
